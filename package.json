@@ -1,0 +1,21 @@
+{
+  "name": "bundler_circuit",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/ZeroKPunk/bundler_circuit.git",
+  "author": "ZeroKPunk@orbiter.finance",
+  "license": "MIT",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "mocha --max-old-space-size=4000"
+  },
+  "dependencies": {
+    "chai": "^4.3.7",
+    "circom_tester": "^0.0.19",
+    "circomlib": "^2.0.5",
+    "circomlibjs": "^0.1.7",
+    "hardhat": "^2.12.4"
+  }
+}
