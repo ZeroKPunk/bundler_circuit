@@ -72,6 +72,7 @@ describe('Bundler Test', function() {
       S: new Array(arrayLen).fill(1).map((v,i) => signature.S),//[signature.S, signature.S],
       M: new Array(arrayLen).fill(1).map((v,i) => F.toObject(msg)),//[F.toObject(msg), F.toObject(msg)],
     }
+    console.log(`input ${JSON.stringify(input)}`)
     
     const w = await circuit.calculateWitness(input,true)
     // console.log(`witness ${JSON.stringify(w)}`)

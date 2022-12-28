@@ -53,3 +53,5 @@ template BundlerVerifier(nInputs) {
   }
 
 }
+
+component main = BundlerVerifier(16);
