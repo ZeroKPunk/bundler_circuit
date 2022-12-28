@@ -51,24 +51,26 @@ describe('Bundler Test', function() {
     console.log(`msg ${JSON.stringify(msg)}`)
 
     const prvKey = Buffer.from("0001020304050607080900010203040506070809000102030405060708090001", "hex");
+    const prvkey1 = Buffer.from("0001020304050607080900010203040506070809000102030405060708090007", "hex");
 
     const pubKey = eddsa.prv2pub(prvKey);
+    const pubKey1 = eddsa.prv2pub(prvkey1);
     console.log(`pubKey ${pubKey}`)
 
     const signature = eddsa.signPoseidon(prvKey, msg);
     console.log(`signature ${JSON.stringify(signature)}`)
 
     assert(eddsa.verifyPoseidon(msg, signature, pubKey));
-
+    const arrayLen = 16;
     const input = {
-      enabled: 1,
-      userOps: F.toObject(msg),
-      Axs: F.toObject(pubKey[0]),
-      Ays: F.toObject(pubKey[1]),
-      R8x: F.toObject(signature.R8[0]),
-      R8y: F.toObject(signature.R8[1]),
-      S: signature.S,
-      M: F.toObject(msg),
+      enabled: new Array(arrayLen).fill(1).map((v,i) => 1),
+      userOps: new Array(arrayLen).fill(1).map((v,i) => F.toObject(msg)),
+      Axs: new Array(arrayLen).fill(1).map((v,i) =>F.toObject(pubKey[0])), // [F.toObject(pubKey[0]), F.toObject(pubKey[0])],
+      Ays: new Array(arrayLen).fill(1).map((v,i) => F.toObject(pubKey[1])), //[F.toObject(pubKey[1]), F.toObject(pubKey[1])],
+      R8x:  new Array(arrayLen).fill(1).map((v,i) => F.toObject(signature.R8[0])),// [F.toObject(signature.R8[0]), F.toObject(signature.R8[0])],
+      R8y: new Array(arrayLen).fill(1).map((v,i) => F.toObject(signature.R8[1])), //[F.toObject(signature.R8[1]), F.toObject(signature.R8[1])],
+      S: new Array(arrayLen).fill(1).map((v,i) => signature.S),//[signature.S, signature.S],
+      M: new Array(arrayLen).fill(1).map((v,i) => F.toObject(msg)),//[F.toObject(msg), F.toObject(msg)],
     }
     
     const w = await circuit.calculateWitness(input,true)
