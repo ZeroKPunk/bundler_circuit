@@ -2,6 +2,8 @@
 
 # Configure Powers of Tau
 
+download here : https://github.com/iden3/snarkjs
+
 # multiplier2
 
 ## Compile the Circuit

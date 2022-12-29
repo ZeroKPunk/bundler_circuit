@@ -1,5 +1,10 @@
 #!/bin/bash
 
+final_ptau="../tmp_powers_of_tao_22/powersOfTau28_hez_final_22.ptau"
+input_json="input128.json"
+
+rm -rf tmp_groth16_zk_process
+
 mkdir -p tmp_groth16_zk_process
 cd tmp_groth16_zk_process
 
@@ -14,12 +19,12 @@ compile_runtime=$( echo "$compile_end - $compile_start" | bc -l )
 echo "=============compile_runtime $compile_runtime"
 
 # Copy the input file inside the sudoku_js directory
-cp ../input.json bundler_js/input.json
+cp ../"${input_json}" bundler_js/"${input_json}"
 
 
 generatezk_start=`date +%s.%N`
 # Generate a .zkey file that will contain the proving and verification keys together with all phase 2 contributions
-snarkjs groth16 setup bundler.r1cs ../tmp_powers_of_tao/pot19_final.ptau circuit_final.zkey
+snarkjs groth16 setup bundler.r1cs "${final_ptau}" circuit_final.zkey
 
 # Export the zkey
 
@@ -33,7 +38,7 @@ echo "=============generatezkey_runtime $generatezk_runtime"
 prove_start=`date +%s.%N`
 # Go inside the sudoku_js directory and generate the witness.wtns
 cd bundler_js
-node generate_witness.js bundler.wasm input.json witness.wtns
+node generate_witness.js bundler.wasm "${input_json}" witness.wtns
 
 # Copy the witness.wtns to the outside and go there
 cp witness.wtns ../witness.wtns
