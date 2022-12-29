@@ -47,3 +47,9 @@ echo "=============prove_runtime $prove_runtime"
 
 # Verify
 snarkjs groth16 verify verification_key.json public.json proof.json
+
+# Export Verify solidity
+snarkjs zkey export solidityverifier circuit_final.zkey verifier.sol
+
+# Export solidity calldata 
+snarkjs zkey export soliditycalldata public.json proof.json

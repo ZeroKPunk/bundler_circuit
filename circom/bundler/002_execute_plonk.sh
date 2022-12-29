@@ -50,3 +50,9 @@ echo "=============prove_end $prove_runtime"
 
 # Verify
 snarkjs plonk verify verification_key.json public.json proof.json
+
+# Export Verify solidity
+snarkjs zkey export solidityverifier circuit_final.zkey verifier.sol
+
+# Export solidity calldata 
+snarkjs zkey export soliditycalldata public.json proof.json
