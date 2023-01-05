@@ -1,14 +1,4 @@
 node_modules
-*_cpp
-*_js
-*.r1cs
-*.sym
-.DS_Store
-.vscode
-/cache
-tmp_*
-
-node_modules
 .env
 coverage
 coverage.json

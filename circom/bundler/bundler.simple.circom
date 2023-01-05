@@ -6,9 +6,6 @@ include "../../node_modules/circomlib/circuits/poseidon.circom";
 
 template BundlerVerifier(nInputs) {
 
-  var stepLength = 4;
-  assert(nInputs % stepLength == 0);
-
   signal input userOps[nInputs];
 
   signal input enabled[nInputs];
@@ -19,26 +16,20 @@ template BundlerVerifier(nInputs) {
   signal input S[nInputs];
   signal input M[nInputs];
 
-  signal output userOpsHash[nInputs / stepLength];
+  signal output userOpsHash;
 
   component signVerifiers[nInputs];
-  component hashes[nInputs / stepLength];
+  component hash;
 
   for(var i=0; i < nInputs; i++) {
     signVerifiers[i] = EdDSAPoseidonVerifier();
   }
 
-  var dataLen = nInputs;
-  for(var i=0; i < nInputs; i += stepLength) {
-    hashes[i / stepLength] = Poseidon(stepLength);
-    for(var j=0; j < stepLength; j++) {
-      hashes[i / stepLength].inputs[j] <== userOps[i+j];
-    }
-  }
-
+  hash = Poseidon(1);
+  var dataSum = 0;
   
   for(var i=0; i < nInputs; i++) {
-    
+    dataSum += userOps[i];
     signVerifiers[i].enabled <== enabled[i];
     signVerifiers[i].Ax <== Axs[i];
     signVerifiers[i].Ay <== Ays[i];
@@ -48,11 +39,8 @@ template BundlerVerifier(nInputs) {
     signVerifiers[i].M <== M[i];
   }
 
-  for(var i=0;i < nInputs / stepLength; i++) {
-    // log(hashes[i].out);
-    userOpsHash[i] <== hashes[i].out;
-
-  }
+  hash.inputs[0] <== dataSum;
+  userOpsHash <== hash.out;
 
 }
 
