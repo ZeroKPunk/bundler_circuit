@@ -43,31 +43,22 @@ contract EntryPoint {
     _poseidonHash = poseidonHash;
   }
 
-  function UserOpKeccak256(UserOperation calldata op) public pure returns (bytes32) {
-    return keccak256(abi.encodePacked(op.sender, op.callData));
+  function keccak256UserOpsSum(UserOperation[] calldata ops) public pure returns (uint256) {
+    uint opsLen = ops.length;
+    uint hashSum = 0;
+    address[] memory senders;
+    bytes[] memory callDatas;
+    for(uint i = 0; i < opsLen; i++){
+      hashSum += uint(keccak256(abi.encode(ops[i].sender, ops[i].nonce, ops[i].callData))) >> 10 ;
+    }
+    return hashSum;
   }
 
-  function verifyUserOpHash(UserOperation[] calldata ops, uint[32] memory inputs) public returns (bool) {
+  function verifyUserOpHash(UserOperation[] calldata ops, uint[1] memory inputs) public returns (bool) {
     console.log("start verifyUserOpHash");
     uint opsLen = ops.length;
-    uint stepLen = 4;
-    for(uint i = 0;i < opsLen; i += stepLen) {
-      uint256[4] memory poseidonInput ;
-      for(uint j = 0; j < stepLen; j++) {
-        // TODO: should encodePacked All Params!
-        
-        bytes32 UserOpHash = UserOpKeccak256(ops[i]);
-        console.logBytes32(UserOpHash);
-        poseidonInput[j] = uint(UserOpHash);
-
-      }
-      console.log("Solidity poseidonInput %s poseidonInput %s", poseidonInput[0], poseidonInput[1]);
-      uint256 Poseidon4Result = IPoseidon4(_poseidonHash).poseidon(poseidonInput);
-      console.log("Poseidon4Result %d inputs[i / stepLen] %d", Poseidon4Result, inputs[i / stepLen]);
-      
-      require(IPoseidon4(_poseidonHash).poseidon(poseidonInput) == inputs[i / stepLen]);
-      
-    }
+    uint256 poseidonInput = keccak256UserOpsSum(ops);
+    require(IPoseidon1(_poseidonHash).poseidon([poseidonInput]) == inputs[0]);
     return true;
   }
 
@@ -76,7 +67,7 @@ contract EntryPoint {
       uint[2] memory a,
       uint[2][2] memory b,
       uint[2] memory c,
-      uint[32] memory input
+      uint[1] memory input
   ) public {
     console.log("Start here");
 

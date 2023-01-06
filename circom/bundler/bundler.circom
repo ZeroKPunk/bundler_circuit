@@ -6,53 +6,43 @@ include "../../node_modules/circomlib/circuits/poseidon.circom";
 
 template BundlerVerifier(nInputs) {
 
-  var stepLength = 4;
-  assert(nInputs % stepLength == 0);
-
-  signal input userOps[nInputs];
-
-  signal input enabled[nInputs];
+  signal input enableds[nInputs];
   signal input Axs[nInputs];
   signal input Ays[nInputs];
-  signal input R8x[nInputs];
-  signal input R8y[nInputs];
-  signal input S[nInputs];
-  signal input M[nInputs];
+  signal input R8xs[nInputs];
+  signal input R8ys[nInputs];
+  signal input Ss[nInputs];
+  signal input Ms[nInputs];
 
-  signal output userOpsHash[nInputs / stepLength];
+  signal output userOpsHash;
 
   component signVerifiers[nInputs];
-  component hashes[nInputs / stepLength];
+  component hash;
+
+  hash = Poseidon(1);
 
   for(var i=0; i < nInputs; i++) {
     signVerifiers[i] = EdDSAPoseidonVerifier();
   }
 
   var dataLen = nInputs;
-  for(var i=0; i < nInputs; i += stepLength) {
-    hashes[i / stepLength] = Poseidon(stepLength);
-    for(var j=0; j < stepLength; j++) {
-      hashes[i / stepLength].inputs[j] <== userOps[i+j];
-    }
+  var hashSum = 0;
+  for(var i=0; i < nInputs; i++) {
+    hashSum += Ms[i];
   }
-
   
   for(var i=0; i < nInputs; i++) {
     
-    signVerifiers[i].enabled <== enabled[i];
+    signVerifiers[i].enabled <== enableds[i];
     signVerifiers[i].Ax <== Axs[i];
     signVerifiers[i].Ay <== Ays[i];
-    signVerifiers[i].R8x <== R8x[i];
-    signVerifiers[i].R8y <== R8y[i];
-    signVerifiers[i].S <== S[i];
-    signVerifiers[i].M <== M[i];
+    signVerifiers[i].R8x <== R8xs[i];
+    signVerifiers[i].R8y <== R8ys[i];
+    signVerifiers[i].S <== Ss[i];
+    signVerifiers[i].M <== Ms[i];
   }
-
-  for(var i=0;i < nInputs / stepLength; i++) {
-    // log(hashes[i].out);
-    userOpsHash[i] <== hashes[i].out;
-
-  }
+  hash.inputs[0] <== hashSum;
+  userOpsHash <== hash.out;
 
 }
 

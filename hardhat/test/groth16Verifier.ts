@@ -2,6 +2,7 @@ import { expect } from "chai";
 import { ethers,  BigNumber } from "ethers"
 import { ethers as ethersHardhat } from "hardhat"
 import * as poseidonGenContract from "./poseidon4ABI.json"
+import * as poseidon1GenContract from "./poseidon1ABI.json"
 
 import { EntryPoint__factory } from "../typechain-types"
 import { UserOperationStruct } from "../typechain-types/EntryPoint"
@@ -22,41 +23,39 @@ function writeJson(data:any, jsonFilePath:string){
 }
 
 function convertUserOpToPoseidonInput(userOp: UserOperationStruct) {
-  const string1 = ethers.utils.solidityPack(["address", "bytes"],[userOp.sender, userOp.callData])
-  console.log(`string1 ${JSON.stringify(string1)}`)
-  const hash1 = ethers.utils.keccak256(string1)
-  console.log(`solidityKeccak256 hash1 ${JSON.stringify(hash1)}`)
-  // const hashBigInt = BigNumber.from(string1).toString()
-  // const hashBigInt = parseInt(hash1,16)
-  var bn = BigInt(hash1)
-  var hashBigInt = bn.toString(10)
-  console.log(`PoseidonCircuitInput= ${(hashBigInt.toString())}`)
-  return hashBigInt.toString()
+
+  const abiCoder = new ethers.utils.AbiCoder
+  let sumHash = BigNumber.from(0)
+  // paramSender.push(userOp.sender)
+  // paramCallData.push(userOp.callData)
+  const keccak256Hash = ethers.utils.keccak256(abiCoder.encode(["address","uint256", "bytes"],[userOp.sender, userOp.nonce, userOp.callData]))
+  // console.log(`convertUserOpToPoseidonInput-keccak256Hash ${keccak256Hash}`)
+  // console.log(`convertUserOpToPoseidonInput-parseInt >> 10 ${parseInt(keccak256Hash, 16)}`)
+  var d = BigNumber.from(BigInt(keccak256Hash).toString(10))
+  // console.log(`BigInt(keccak256Hash).toString(10) ${BigInt(keccak256Hash).toString(10)} BigNumberToString ${d.toString()} d.shr(10) ${d.shr(10).toString()}`)
+  sumHash = sumHash.add(d.shr(10))
+
+  console.log(`PoseidonCircuitInput= ${(sumHash.toString())}`)
+  return sumHash.toString()
 }
-
-// const poseidonGenContract = require('circomlibjs/src/poseidon_gencontract.js')
-
-// poseidonGenContract.generateABI(5)
-// poseidonGenContract.createCode(5)
-
 
 async function main() {
 
   const account0 = (await ethersHardhat.getSigners())[0]
   const provider = ethersHardhat.provider
 
-  const abi = poseidonGenContract.abi
-  const bytecode = poseidonGenContract.bytecode
+  const abi = poseidon1GenContract.abi
+  const bytecode = poseidon1GenContract.bytecode
 
   const factory = new ethers.ContractFactory(abi, bytecode, account0)
-  const PoseidonContract4 = await factory.deploy()
+  const PoseidonContract1 = await factory.deploy()
   // console.log(`Interface ${JSON.stringify(PoseidonContract4.interface)}`)
 
-  const PoseidonContract4Address = PoseidonContract4.address
-  await PoseidonContract4.deployTransaction.wait()
-  console.log(`PoseidonContract1Address ${PoseidonContract4Address}`)
+  const PoseidonContract1Address = PoseidonContract1.address
+  await PoseidonContract1.deployTransaction.wait()
+  console.log(`PoseidonContract1Address ${PoseidonContract1Address}`)
 
-  const entryPoint = await new EntryPoint__factory(account0).deploy(PoseidonContract4Address)
+  const entryPoint = await new EntryPoint__factory(account0).deploy(PoseidonContract1Address)
 
   console.log(`entryPoint Address ${entryPoint.address}`)
   
@@ -87,11 +86,11 @@ async function main() {
 
   const hashBigInt = convertUserOpToPoseidonInput(userOp)
 
-  const poseidon4Result = await PoseidonContract4['poseidon(uint256[4])']([hashBigInt,hashBigInt, hashBigInt, hashBigInt]);
-  console.log(`poseidon4SolidityResult ${JSON.stringify(poseidon4Result)}`)
+  const poseidon1Result = await PoseidonContract1['poseidon(uint256[1])']([hashBigInt]);
+  console.log(`poseidon1SolidityResult ${JSON.stringify(poseidon1Result)}`)
 
-  const poseidon4OfflineResult = poseidonOpt([hashBigInt,hashBigInt,hashBigInt,hashBigInt])
-  console.log(`poseidon4OfflineResult ${JSONStringfiy(F.toObject(poseidon4OfflineResult))}`)
+  const poseidon1OfflineResult = poseidonOpt([hashBigInt])
+  console.log(`poseidon1OfflineResult ${JSONStringfiy(F.toObject(poseidon1OfflineResult))}`)
 
   // await entryPoint.UserOpKeccak256()
 
@@ -106,21 +105,20 @@ async function main() {
   const signature = eddsa.signPoseidon(prvKey, msg);
   
   const input = {
-    enabled: new Array(arrayLen).fill(1).map((v,i) => 1),
-    userOps: new Array(arrayLen).fill(1).map((v,i) => F.toObject(msg)),
+    enableds: new Array(arrayLen).fill(1).map((v,i) => 1),
     Axs: new Array(arrayLen).fill(1).map((v,i) => F.toObject(pubKey[0])), // [F.toObject(pubKey[0]), F.toObject(pubKey[0])],
     Ays: new Array(arrayLen).fill(1).map((v,i) => F.toObject(pubKey[1])), //[F.toObject(pubKey[1]), F.toObject(pubKey[1])],
-    R8x:  new Array(arrayLen).fill(1).map((v,i) => F.toObject(signature.R8[0])),// [F.toObject(signature.R8[0]), F.toObject(signature.R8[0])],
-    R8y: new Array(arrayLen).fill(1).map((v,i) => F.toObject(signature.R8[1])), //[F.toObject(signature.R8[1]), F.toObject(signature.R8[1])],
-    S: new Array(arrayLen).fill(1).map((v,i) => signature.S),//[signature.S, signature.S],
-    M: new Array(arrayLen).fill(1).map((v,i) => F.toObject(msg)),//[F.toObject(msg), F.toObject(msg)],
+    R8xs:  new Array(arrayLen).fill(1).map((v,i) => F.toObject(signature.R8[0])),// [F.toObject(signature.R8[0]), F.toObject(signature.R8[0])],
+    R8ys: new Array(arrayLen).fill(1).map((v,i) => F.toObject(signature.R8[1])), //[F.toObject(signature.R8[1]), F.toObject(signature.R8[1])],
+    Ss: new Array(arrayLen).fill(1).map((v,i) => signature.S),//[signature.S, signature.S],
+    Ms: new Array(arrayLen).fill(1).map((v,i) => F.toObject(msg)),//[F.toObject(msg), F.toObject(msg)],
   }
   // console.log(`input ${JSON.stringify(input, (_, v) => typeof v === 'bigint' ? v.toString() : v)}`)
   // writeJson(input, 'test.json')
-  const a:[string,string] = ["0x0b9b7c277bd2194f7457258f304f1a32f53e3717d66cb6ba40e7b86183f6e28d", "0x0f70323e63be5c953e8774ade6be03ffdc2fc8ba794cdfeb6467b29d92da1beb"]
-  const b:[[string,string],[string,string]] = [["0x10b3fd2bc0f8c21bb4b2f27cd163fc8455317a542431694636abacccf1e647de", "0x05af54597ec18394c40c12a9ca2d4b9decc0fb1656f4ac2217dac474fa629808"],["0x289a887b68f1f26371b9e8b529c5c74258a9f4aebb5928125a3910d817277dad", "0x10dffdad17cf4b953b21d58ddcc766eca1401c9b14435893de9b8bc0a2a6363e"]]
-  const c:[string, string] = ["0x1e405668e1d08b351825ed4a33d1903ccb5943fdb30beaa5bbb72543f5df869e", "0x21fc18f9de91461b637a81ac3a4dc9cf6e944d2c859d2eabe1743d1553f7c8c4"]
-  const pInput = ["0x0b27001291cc519156df153ac419d89f8c0798f7454568915460758aba85b1fd","0x0b27001291cc519156df153ac419d89f8c0798f7454568915460758aba85b1fd","0x0b27001291cc519156df153ac419d89f8c0798f7454568915460758aba85b1fd","0x0b27001291cc519156df153ac419d89f8c0798f7454568915460758aba85b1fd","0x0b27001291cc519156df153ac419d89f8c0798f7454568915460758aba85b1fd","0x0b27001291cc519156df153ac419d89f8c0798f7454568915460758aba85b1fd","0x0b27001291cc519156df153ac419d89f8c0798f7454568915460758aba85b1fd","0x0b27001291cc519156df153ac419d89f8c0798f7454568915460758aba85b1fd","0x0b27001291cc519156df153ac419d89f8c0798f7454568915460758aba85b1fd","0x0b27001291cc519156df153ac419d89f8c0798f7454568915460758aba85b1fd","0x0b27001291cc519156df153ac419d89f8c0798f7454568915460758aba85b1fd","0x0b27001291cc519156df153ac419d89f8c0798f7454568915460758aba85b1fd","0x0b27001291cc519156df153ac419d89f8c0798f7454568915460758aba85b1fd","0x0b27001291cc519156df153ac419d89f8c0798f7454568915460758aba85b1fd","0x0b27001291cc519156df153ac419d89f8c0798f7454568915460758aba85b1fd","0x0b27001291cc519156df153ac419d89f8c0798f7454568915460758aba85b1fd","0x0b27001291cc519156df153ac419d89f8c0798f7454568915460758aba85b1fd","0x0b27001291cc519156df153ac419d89f8c0798f7454568915460758aba85b1fd","0x0b27001291cc519156df153ac419d89f8c0798f7454568915460758aba85b1fd","0x0b27001291cc519156df153ac419d89f8c0798f7454568915460758aba85b1fd","0x0b27001291cc519156df153ac419d89f8c0798f7454568915460758aba85b1fd","0x0b27001291cc519156df153ac419d89f8c0798f7454568915460758aba85b1fd","0x0b27001291cc519156df153ac419d89f8c0798f7454568915460758aba85b1fd","0x0b27001291cc519156df153ac419d89f8c0798f7454568915460758aba85b1fd","0x0b27001291cc519156df153ac419d89f8c0798f7454568915460758aba85b1fd","0x0b27001291cc519156df153ac419d89f8c0798f7454568915460758aba85b1fd","0x0b27001291cc519156df153ac419d89f8c0798f7454568915460758aba85b1fd","0x0b27001291cc519156df153ac419d89f8c0798f7454568915460758aba85b1fd","0x0b27001291cc519156df153ac419d89f8c0798f7454568915460758aba85b1fd","0x0b27001291cc519156df153ac419d89f8c0798f7454568915460758aba85b1fd","0x0b27001291cc519156df153ac419d89f8c0798f7454568915460758aba85b1fd","0x0b27001291cc519156df153ac419d89f8c0798f7454568915460758aba85b1fd"]
+  const a:[string,string] = ["0x061212f4f2a2a50b363cba0491e0babb961204bd06010516072770ea9e7be541", "0x10ff7adc4d7582f06a54431d6c461baec1edcf9bcd49147c8eb366ebc340dfe7"]
+  const b:[[string,string],[string,string]] = [["0x2d38fc46953321c26dc33bec7a3e0521f624a4a70d0de67aa02e73bfef257ac0", "0x262ffe29a3893332acb2c391a8b757cc8fbd07b45ada168f0b60dbf64910d80c"],["0x1c9ea55ed0fcb1fcf3bbb7b526c55d2e9056355800ff6ea797250c368b90e963", "0x1326f03417336090c0f3779246c3596f68af1951af7686415a6afd13f2dd0902"]]
+  const c:[string, string] = ["0x2f314b48061732a6eac6c9b2e080823be38701aff4573ee133229f01b285e454", "0x16444a126b299a958752cf6e7128c84db93aa4ed6b6a23614cb8a830eac4a57e"]
+  const pInput:[string] = ["0x18c39ce41f8d249563cbf8318c50c2d50eb277ad4df4c01c37131d501672ca3c"]
   const tx = await entryPoint.handleOps(userOps, a, b, c, pInput)
 
   await tx.wait()
